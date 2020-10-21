@@ -104,9 +104,9 @@ public class ImageUtils {
         source.getPixels(intValues, 0, source.getWidth(), 0, 0, source.getWidth(), source.getHeight());
         for (int i = 0; i < intValues.length; ++i) {
             final int val = intValues[i];
-            output[i * 3] = (((val >> 16) & 0xFF) - mean)/std;
-            output[i * 3 + 1] = (((val >> 8) & 0xFF) - mean)/std;
-            output[i * 3 + 2] = ((val & 0xFF) - mean)/std;
+            output[i * 3] = (val>>16)&0xFF;///(((val >> 16) & 0xFF) - mean)/std;
+            output[i * 3 + 1] = (val>>8)&0xFF;//(((val >> 8) & 0xFF) - mean)/std;
+            output[i * 3 + 2] = val&0xFF;//((val & 0xFF) - mean)/std;
         }
 
         return output;

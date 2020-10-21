@@ -1,25 +1,19 @@
 package com.specpal.mobileai;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
-import android.renderscript.ScriptGroup;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.JsonReader;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
-import org.json.*;
 
 import org.tensorflow.contrib.android.TensorFlowInferenceInterface;
-
-import java.io.FileInputStream;
-import java.io.InputStream;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -36,13 +30,15 @@ public class MainActivity extends AppCompatActivity {
     private TensorFlowInferenceInterface tf;
 
     //ARRAY TO HOLD THE PREDICTIONS AND FLOAT VALUES TO HOLD THE IMAGE DATA
-    float[] PREDICTIONS = new float[1000];
+    float[] PREDICTIONS = new float[2];
     private float[] floatValues;
     private int[] INPUT_SIZE = {224,224,3};
 
     ImageView imageView;
     TextView resultView;
     Snackbar progressBar;
+
+    private static final int CHOOSE_PHOTO=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //initialize tensorflow with the AssetManager and the Model
+        // 这里也需要改，但这个 tensorflow 的代码我不会改也改不了
         tf = new TensorFlowInferenceInterface(getAssets(),MODEL_PATH);
 
         imageView = (ImageView) findViewById(R.id.imageview);
@@ -67,28 +64,59 @@ public class MainActivity extends AppCompatActivity {
         predict.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // 选择手机相册
+                Intent intent = new Intent("android.intent.action.GET_CONTENT");
+                intent.setType("image/*");
+                startActivityForResult(intent, CHOOSE_PHOTO);
 
+//                try{
+//
+//                    //READ THE IMAGE FROM ASSETS FOLDER
+//                    InputStream imageStream = getAssets().open("testimage.jpg");
+//
+//                    Bitmap bitmap = BitmapFactory.decodeStream(imageStream);
+//
+//                    imageView.setImageBitmap(bitmap);
+//
+//                    progressBar.show();
+//
+//                    predict(bitmap);
+//                }
+//                catch (Exception e){
+//
+//                }
 
-                try{
+            }
+        });
+    }
 
-                    //READ THE IMAGE FROM ASSETS FOLDER
-                    InputStream imageStream = getAssets().open("testimage.jpg");
-
-                    Bitmap bitmap = BitmapFactory.decodeStream(imageStream);
-
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // 选择图片成功  回调
+        switch (requestCode) {
+            case CHOOSE_PHOTO:
+                if (resultCode == RESULT_OK) {
+                    Bitmap bitmap = null;
+                    //判断手机系统版本号
+                    if (Build.VERSION.SDK_INT >= 19) {
+                        //4.4及以上系统使用这个方法处理图片
+                        bitmap = ImgUtil.handleImageOnKitKat(this, data);        //ImgUtil是自己实现的一个工具类
+                    } else {
+                        //4.4以下系统使用这个方法处理图片
+                        bitmap = ImgUtil.handleImageBeforeKitKat(this, data);
+                    }
                     imageView.setImageBitmap(bitmap);
 
                     progressBar.show();
 
                     predict(bitmap);
                 }
-                catch (Exception e){
-
-                }
-
-            }
-        });
+                break;
+            default:
+                break;
+        }
     }
+
 
     //FUNCTION TO COMPUTE THE MAXIMUM PREDICTION AND ITS CONFIDENCE
     public Object[] argmax(float[] array){
